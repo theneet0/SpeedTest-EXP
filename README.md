@@ -8,7 +8,7 @@ The project is optimized for Android 14 and newer while retaining a practical mi
 
 ## Download
 
-The current installable beta APK, source archive, release notes, and SHA-256 checksums are available on the [SpeedLab v0.9.0 Beta release page](https://github.com/theneet0/SpeedTest-EXP/releases/tag/v0.9.0).
+The current installable ARM64 beta APK, source archive, release notes, and SHA-256 checksums are available on the [SpeedLab v0.9.1 Beta release page](https://github.com/theneet0/SpeedTest-EXP/releases/tag/v0.9.1).
 
 ## Current feature set
 
@@ -17,7 +17,8 @@ The current installable beta APK, source archive, release notes, and SHA-256 che
 - Automatic latency-based server selection, manual selection, and custom HTTPS endpoints
 - Current, average, peak, and final throughput values
 - Median ping, consecutive-sample jitter, stage progress, traffic count, and selected server
-- Lightweight custom Compose speedometer and live throughput graph
+- Material 3 and Material You interface with dynamic color on Android 12+
+- Material progress-ring speed display and lightweight live throughput graph
 - Data Saver, Balanced, Accurate, and validated Custom profiles
 - Mbps, MB/s, Kbps, and Gbps display units
 - Wi-Fi, cellular, Ethernet, VPN, other, and disconnected network detection
@@ -110,11 +111,11 @@ Build and test from the repository root:
     ./gradlew testDebugUnitTest
     ./gradlew assembleDebug
 
-The standard output is:
+The ARM64 output is:
 
-    app/build/outputs/apk/debug/app-debug.apk
+    app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
 
-The GitHub Actions workflow runs tests, builds the debug APK, renames it to SpeedLab-debug.apk, creates SpeedLab-source.zip, and uploads both in the SpeedLab-deliverables artifact. The debug APK uses the normal Android debug signing key and is intended for direct testing, not Play Store release.
+The GitHub Actions workflow runs tests, builds the ARM64 debug APK, creates SpeedLab-source.zip, and uploads both in the SpeedLab-arm64-deliverables artifact. When app/build.gradle.kts contains a version that has no matching GitHub Release, the same successful workflow automatically creates the `v<version>` prerelease with the tested APK, source archive, and checksums. Existing version releases are never duplicated. The debug APK uses the normal Android debug signing key and is intended for direct testing, not Play Store distribution.
 
 ## Tests
 

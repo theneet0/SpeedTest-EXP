@@ -12,9 +12,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      version: ${{ steps.app_version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Read app version
+        id: app_version
+        shell: bash
+        run: |
+          VERSION="$(sed -n 's/^[[:space:]]*versionName = "\([^"]*\)"/\1/p' app/build.gradle.kts | head -n 1)"
+          test -n "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -61,9 +71,9 @@ jobs:
           retention-days: 30
 
   release:
-    name: Publish v0.9.1 prerelease
+    name: Publish new GitHub prerelease
     needs: build
-    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[release:v0.9.1]')
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -77,14 +87,31 @@ jobs:
           name: SpeedLab-arm64-deliverables
           path: release-assets
 
-      - name: Prepare versioned release assets
+      - name: Check for an existing release
+        id: release_check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
         run: |
-          mv release-assets/SpeedLab-arm64-v8a-debug.apk release-assets/SpeedLab-v0.9.1-arm64-v8a-beta.apk
-          mv release-assets/SpeedLab-source.zip release-assets/SpeedLab-v0.9.1-source.zip
+          if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prepare versioned release assets
+        if: steps.release_check.outputs.exists == 'false'
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          mv release-assets/SpeedLab-arm64-v8a-debug.apk "release-assets/SpeedLab-v$VERSION-arm64-v8a-beta.apk"
+          mv release-assets/SpeedLab-source.zip "release-assets/SpeedLab-v$VERSION-source.zip"
           sha256sum release-assets/* > release-assets/SHA256SUMS.txt
 
       - name: Create GitHub prerelease
+        if: steps.release_check.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
         run: |
-          gh release create v0.9.1 release-assets/SpeedLab-v0.9.1-arm64-v8a-beta.apk release-assets/SpeedLab-v0.9.1-source.zip release-assets/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "SpeedLab v0.9.1 Beta" --notes-file RELEASE_NOTES.md --prerelease
+          gh release create "v$VERSION" "release-assets/SpeedLab-v$VERSION-arm64-v8a-beta.apk" "release-assets/SpeedLab-v$VERSION-source.zip" release-assets/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "SpeedLab v$VERSION Beta" --notes-file RELEASE_NOTES.md --prerelease
