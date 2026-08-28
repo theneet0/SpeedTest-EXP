@@ -21,10 +21,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -116,7 +118,7 @@ fun HistoryScreen(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
@@ -125,7 +127,7 @@ fun HistoryScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("History", style = MaterialTheme.typography.headlineLarge)
+                    Text("Results", style = MaterialTheme.typography.titleLarge)
                     Text(
                         "${records.size} locally stored results",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -221,10 +223,10 @@ private fun FilterStrip(
 
 @Composable
 private fun HistoryRow(record: HistoryEntity, onClick: () -> Unit) {
-    Card(
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -244,8 +246,8 @@ private fun HistoryRow(record: HistoryEntity, onClick: () -> Unit) {
             }
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                HistoryMetric("↓", record.downloadMbps)
-                HistoryMetric("↑", record.uploadMbps)
+                HistoryMetric("Download", record.downloadMbps)
+                HistoryMetric("Upload", record.uploadMbps)
                 Column {
                     Text("PING", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     Text("%.1f ms".format(record.pingMillis), fontWeight = FontWeight.Bold)
@@ -256,15 +258,14 @@ private fun HistoryRow(record: HistoryEntity, onClick: () -> Unit) {
 }
 
 @Composable
-private fun HistoryMetric(prefix: String, value: Double) {
+private fun HistoryMetric(label: String, value: Double) {
     Column {
         Text(
-            if (prefix == "↓") "DOWNLOAD" else "UPLOAD",
+            label,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelSmall,
         )
-        Text("$prefix %.2f".format(value), fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.secondary)
+        Text("%.2f".format(value), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
         Text("Mbps", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
     }
 }
@@ -289,11 +290,11 @@ private fun RecentComparison(records: List<HistoryEntity>) {
     val latest = records[0]
     val previous = records[1]
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        shape = MaterialTheme.shapes.large,
     ) {
         Column(Modifier.fillMaxWidth().padding(18.dp)) {
-            Text("RECENT COMPARISON", color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text("Recent comparison", color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(9.dp))
             Row {
                 ComparisonMetric("Download", latest.downloadMbps, previous.downloadMbps, Modifier.weight(1f))
@@ -307,11 +308,11 @@ private fun RecentComparison(records: List<HistoryEntity>) {
 private fun ComparisonMetric(label: String, latest: Double, previous: Double, modifier: Modifier) {
     val delta = if (previous > 0.0) ((latest - previous) / previous) * 100.0 else 0.0
     Column(modifier) {
-        Text(label, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f), fontSize = 12.sp)
-        Text("%.1f Mbps".format(latest), color = MaterialTheme.colorScheme.onPrimary, fontSize = 19.sp, fontWeight = FontWeight.Black)
+        Text(label, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f), fontSize = 12.sp)
+        Text("%.1f Mbps".format(latest), color = MaterialTheme.colorScheme.onPrimaryContainer, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
         Text(
             "${if (delta >= 0) "+" else ""}%.1f%% vs previous".format(delta),
-            color = if (delta >= 0) SpeedLabAqua else Color(0xFFFFB4AB),
+            color = if (delta >= 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error,
             fontSize = 11.sp,
         )
     }
@@ -319,10 +320,8 @@ private fun ComparisonMetric(label: String, latest: Double, previous: Double, mo
 
 @Composable
 private fun EmptyHistory(hasAny: Boolean) {
-    Card(
+    OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(22.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp, horizontal = 24.dp),

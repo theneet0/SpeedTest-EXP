@@ -44,23 +44,26 @@ jobs:
 
       - name: Prepare deliverables
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk SpeedLab-debug.apk
-          zip -qr SpeedLab-source.zip . -x '.git/*' '.gradle/*' '*/build/*' 'SpeedLab-debug.apk' 'SpeedLab-source.zip'
+          ARM64_APK="$(find app/build/outputs/apk/debug -type f -name '*arm64-v8a*.apk' | head -n 1)"
+          test -n "$ARM64_APK"
+          grep -q 'arm64-v8a' app/build/outputs/apk/debug/output-metadata.json
+          cp "$ARM64_APK" SpeedLab-arm64-v8a-debug.apk
+          zip -qr SpeedLab-source.zip . -x '.git/*' '.gradle/*' '*/build/*' 'SpeedLab-*.apk' 'SpeedLab-source.zip'
 
       - name: Upload APK and source
         uses: actions/upload-artifact@v4
         with:
-          name: SpeedLab-deliverables
+          name: SpeedLab-arm64-deliverables
           path: |
-            SpeedLab-debug.apk
+            SpeedLab-arm64-v8a-debug.apk
             SpeedLab-source.zip
           if-no-files-found: error
           retention-days: 30
 
   release:
-    name: Publish v0.9.0 prerelease
+    name: Publish v0.9.1 prerelease
     needs: build
-    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[release:v0.9.0]')
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[release:v0.9.1]')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -71,17 +74,17 @@ jobs:
       - name: Download tested deliverables
         uses: actions/download-artifact@v4
         with:
-          name: SpeedLab-deliverables
+          name: SpeedLab-arm64-deliverables
           path: release-assets
 
       - name: Prepare versioned release assets
         run: |
-          mv release-assets/SpeedLab-debug.apk release-assets/SpeedLab-v0.9.0-beta.apk
-          mv release-assets/SpeedLab-source.zip release-assets/SpeedLab-v0.9.0-source.zip
+          mv release-assets/SpeedLab-arm64-v8a-debug.apk release-assets/SpeedLab-v0.9.1-arm64-v8a-beta.apk
+          mv release-assets/SpeedLab-source.zip release-assets/SpeedLab-v0.9.1-source.zip
           sha256sum release-assets/* > release-assets/SHA256SUMS.txt
 
       - name: Create GitHub prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.9.0 release-assets/SpeedLab-v0.9.0-beta.apk release-assets/SpeedLab-v0.9.0-source.zip release-assets/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "SpeedLab v0.9.0 Beta" --notes-file RELEASE_NOTES.md --prerelease
+          gh release create v0.9.1 release-assets/SpeedLab-v0.9.1-arm64-v8a-beta.apk release-assets/SpeedLab-v0.9.1-source.zip release-assets/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "SpeedLab v0.9.1 Beta" --notes-file RELEASE_NOTES.md --prerelease

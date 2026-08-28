@@ -13,8 +13,8 @@ android {
         applicationId = "com.example.speedlab"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.9.0"
+        versionCode = 2
+        versionName = "0.9.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -37,6 +37,17 @@ android {
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
     packaging.resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+
+    // SpeedLab ships a single phone-focused APK. This keeps any future native
+    // dependencies restricted to modern 64-bit ARM devices.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a")
+            isUniversalApk = false
+        }
+    }
 }
 
 kapt {
@@ -57,6 +68,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")

@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,17 +18,29 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,10 +51,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -61,9 +70,6 @@ import com.example.speedlab.model.formatBytes
 import com.example.speedlab.share.ShareFormat
 import com.example.speedlab.share.shareResult
 import kotlin.math.ceil
-import kotlin.math.cos
-import kotlin.math.max
-import kotlin.math.sin
 
 @Composable
 fun TestScreen(
@@ -83,6 +89,7 @@ fun TestScreen(
     if (state.showCellularWarning) {
         AlertDialog(
             onDismissRequest = onDismissCellular,
+            icon = { Icon(Icons.Filled.Info, contentDescription = null) },
             title = { Text("Use mobile data?") },
             text = {
                 Text(
@@ -98,6 +105,7 @@ fun TestScreen(
     if (state.errorMessage != null && state.stage != TestStage.CANCELLED) {
         AlertDialog(
             onDismissRequest = onDismissError,
+            icon = { Icon(Icons.Filled.Info, contentDescription = null) },
             title = { Text(if (state.stage == TestStage.FAILED) "Test stopped" else "Check settings") },
             text = { Text(state.errorMessage) },
             confirmButton = { TextButton(onClick = onDismissError) { Text("OK") } },
@@ -106,114 +114,52 @@ fun TestScreen(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        item { NetworkStatus(state) }
         item {
-            AppHeader(state)
+            TestModeSelector(
+                selected = state.settings.testMode,
+                enabled = !state.isActive,
+                onSelect = onSelectMode,
+            )
         }
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                TestMode.entries.forEach { mode ->
-                    val label = when (mode) {
-                        TestMode.DOWNLOAD -> "Download"
-                        TestMode.UPLOAD -> "Upload"
-                        TestMode.BOTH -> "Both"
-                    }
-                    FilterChip(
-                        selected = state.settings.testMode == mode,
-                        onClick = { onSelectMode(mode) },
-                        enabled = !state.isActive,
-                        label = { Text(label, maxLines = 1, fontSize = 12.sp) },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-        }
-        item {
-            ServerCard(state)
-        }
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(28.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        state.stage.label.uppercase(),
-                        color = MaterialTheme.colorScheme.secondary,
-                        style = MaterialTheme.typography.labelLarge,
-                        letterSpacing = 1.sp,
-                    )
-                    SpeedGauge(
-                        mbps = state.currentMbps,
-                        unit = unit,
-                        modifier = Modifier.fillMaxWidth().height(244.dp),
-                    )
-                    if (state.isActive || state.stage == TestStage.COMPLETED) {
-                        LinearProgressIndicator(
-                            progress = { state.progress },
-                            modifier = Modifier.fillMaxWidth().height(6.dp),
-                            color = SpeedLabAqua,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                            strokeCap = StrokeCap.Round,
-                        )
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    if (state.isActive) {
-                        Text(
-                            "${formatBytes(state.transferredBytes)} transferred",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    } else {
-                        val estimateSeconds = durationEstimateMillis(state.settings) / 1_000
-                        Text(
-                            "Estimated maximum ${formatBytes(estimatedMaximumBytes(state.settings))} • about ${estimateSeconds}s",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                }
-            }
-        }
-        item {
-            MetricsGrid(state, unit)
-        }
+        item { ServerCard(state) }
+        item { MeasurementCard(state, unit) }
+        item { MetricsGrid(state, unit) }
         if (state.samplesMbps.size >= 2) {
             item {
                 ThroughputGraph(
                     samples = state.samplesMbps.map(unit::fromMbps),
                     unit = unit.symbol,
-                    modifier = Modifier.fillMaxWidth().height(150.dp),
+                    modifier = Modifier.fillMaxWidth().height(168.dp),
                 )
             }
         }
         item {
             Button(
                 onClick = if (state.isActive) onCancel else onStart,
-                modifier = Modifier.fillMaxWidth().height(58.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (state.isActive) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.primary
-                    },
-                ),
-                shape = RoundedCornerShape(18.dp),
+                modifier = Modifier.fillMaxWidth().height(60.dp),
+                colors = if (state.isActive) {
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    )
+                } else {
+                    ButtonDefaults.buttonColors()
+                },
+                shape = MaterialTheme.shapes.extraLarge,
             ) {
+                Icon(
+                    imageVector = if (state.isActive) Icons.Filled.Close else Icons.Filled.PlayArrow,
+                    contentDescription = null,
+                )
+                Spacer(Modifier.width(10.dp))
                 Text(
-                    if (state.isActive) "CANCEL TEST" else "START TEST",
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
+                    if (state.isActive) "Cancel test" else "Start speed test",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
         }
@@ -226,7 +172,11 @@ fun TestScreen(
                     OutlinedButton(
                         onClick = { shareResult(context, state.lastResult, ShareFormat.TEXT) },
                         modifier = Modifier.weight(1f),
-                    ) { Text("Share result") }
+                    ) {
+                        Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Share")
+                    }
                     OutlinedButton(
                         onClick = { shareResult(context, state.lastResult, ShareFormat.JSON) },
                         modifier = Modifier.weight(1f),
@@ -245,44 +195,69 @@ fun TestScreen(
 }
 
 @Composable
-private fun AppHeader(state: SpeedLabUiState) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier.size(42.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("S", color = MaterialTheme.colorScheme.onPrimary, fontSize = 21.sp, fontWeight = FontWeight.Black)
-        }
-        Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
-            Text("SpeedLab", style = MaterialTheme.typography.titleLarge)
+private fun NetworkStatus(state: SpeedLabUiState) {
+    val container = if (state.network.available) {
+        MaterialTheme.colorScheme.secondaryContainer
+    } else {
+        MaterialTheme.colorScheme.errorContainer
+    }
+    val content = if (state.network.available) {
+        MaterialTheme.colorScheme.onSecondaryContainer
+    } else {
+        MaterialTheme.colorScheme.onErrorContainer
+    }
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Internet speed test", style = MaterialTheme.typography.headlineSmall)
             Text(
-                "Private, native internet measurement",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                "Real-time native measurement",
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Row(
-            modifier = Modifier.background(
-                if (state.network.available) {
-                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
-                } else {
-                    MaterialTheme.colorScheme.error.copy(alpha = 0.12f)
-                },
-                CircleShape,
-            ).padding(horizontal = 10.dp, vertical = 7.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                Modifier.size(7.dp).background(
-                    if (state.network.available) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error,
-                    CircleShape,
-                ),
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(state.network.transport.label, style = MaterialTheme.typography.labelLarge, fontSize = 11.sp)
+        Surface(color = container, contentColor = content, shape = CircleShape) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(8.dp).background(content, CircleShape))
+                Spacer(Modifier.width(7.dp))
+                Text(state.network.transport.label, style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TestModeSelector(
+    selected: TestMode,
+    enabled: Boolean,
+    onSelect: (TestMode) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Test mode", style = MaterialTheme.typography.titleSmall)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TestMode.entries.forEach { mode ->
+                val label = if (mode == TestMode.BOTH) "Both" else mode.label
+                FilterChip(
+                    selected = selected == mode,
+                    onClick = { onSelect(mode) },
+                    enabled = enabled,
+                    label = { Text(label, maxLines = 1) },
+                    leadingIcon = if (selected == mode) {
+                        {
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    } else {
+                        null
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }
@@ -290,40 +265,110 @@ private fun AppHeader(state: SpeedLabUiState) {
 @Composable
 private fun ServerCard(state: SpeedLabUiState) {
     val server = state.selectedServer
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(18.dp),
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier.size(38.dp).background(SpeedLabAqua.copy(alpha = 0.18f), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) { Text("◎", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold) }
-            Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
-                Text(server?.name ?: state.settings.serverMode.label, fontWeight = FontWeight.Bold)
+            Surface(
+                modifier = Modifier.size(48.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = CircleShape,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.LocationOn, contentDescription = null)
+                }
+            }
+            Column(modifier = Modifier.padding(start = 14.dp).weight(1f)) {
                 Text(
-                    server?.let { "${it.location} • ${it.host}" } ?: "Server will be selected at test time",
+                    server?.name ?: "${state.settings.serverMode.label} server",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    server?.let { "${it.location} • ${it.host}" } ?: "Selected when the test starts",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                 )
             }
             if (server != null && state.serverSelectionLatencyMillis > 0.0) {
-                Text(
-                    "%.0f ms".format(state.serverSelectionLatencyMillis),
-                    color = MaterialTheme.colorScheme.secondary,
-                    fontWeight = FontWeight.Bold,
-                )
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    shape = CircleShape,
+                ) {
+                    Text(
+                        "%.0f ms".format(state.serverSelectionLatencyMillis),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun SpeedGauge(mbps: Double, unit: SpeedUnit, modifier: Modifier = Modifier) {
+private fun MeasurementCard(state: SpeedLabUiState, unit: SpeedUnit) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = CircleShape,
+            ) {
+                Text(
+                    state.stage.label,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+            Spacer(Modifier.height(18.dp))
+            SpeedRing(
+                mbps = state.currentMbps,
+                unit = unit,
+                modifier = Modifier.size(238.dp),
+            )
+            Spacer(Modifier.height(18.dp))
+            if (state.isActive || state.stage == TestStage.COMPLETED) {
+                LinearProgressIndicator(
+                    progress = { state.progress },
+                    modifier = Modifier.fillMaxWidth().height(6.dp),
+                    strokeCap = StrokeCap.Round,
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            val supportingText = if (state.isActive) {
+                "${formatBytes(state.transferredBytes)} transferred"
+            } else {
+                val estimateSeconds = durationEstimateMillis(state.settings) / 1_000
+                "Up to ${formatBytes(estimatedMaximumBytes(state.settings))} • about ${estimateSeconds}s"
+            }
+            Text(
+                supportingText,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SpeedRing(mbps: Double, unit: SpeedUnit, modifier: Modifier = Modifier) {
     val converted = unit.fromMbps(mbps)
     val scale = when {
         converted <= 10.0 -> 10.0
@@ -334,9 +379,7 @@ private fun SpeedGauge(mbps: Double, unit: SpeedUnit, modifier: Modifier = Modif
         else -> ceil(converted / 1_000.0) * 1_000.0
     }
     val target = (converted / scale).coerceIn(0.0, 1.0).toFloat()
-    val animated by animateFloatAsState(target, animationSpec = tween(180), label = "gauge")
-    val track = MaterialTheme.colorScheme.surfaceVariant
-    val needle = MaterialTheme.colorScheme.onSurface
+    val animated by animateFloatAsState(target, animationSpec = tween(180), label = "speed ring")
 
     Box(
         modifier = modifier.semantics {
@@ -344,70 +387,33 @@ private fun SpeedGauge(mbps: Double, unit: SpeedUnit, modifier: Modifier = Modif
         },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(modifier = Modifier.size(238.dp)) {
-            val stroke = 16.dp.toPx()
-            val inset = stroke
-            val arcRect = Rect(inset, inset, size.width - inset, size.height - inset)
-            drawArc(
-                color = track,
-                startAngle = 145f,
-                sweepAngle = 250f,
-                useCenter = false,
-                topLeft = arcRect.topLeft,
-                size = arcRect.size,
-                style = Stroke(stroke, cap = StrokeCap.Round),
+        CircularProgressIndicator(
+            progress = { animated },
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            strokeWidth = 14.dp,
+            strokeCap = StrokeCap.Round,
+        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "CURRENT",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 1.2.sp,
             )
-            drawArc(
-                brush = Brush.sweepGradient(listOf(SpeedLabAqua, SpeedLabBlue, SpeedLabAqua)),
-                startAngle = 145f,
-                sweepAngle = 250f * animated,
-                useCenter = false,
-                topLeft = arcRect.topLeft,
-                size = arcRect.size,
-                style = Stroke(stroke, cap = StrokeCap.Round),
-            )
-            repeat(11) { index ->
-                val angle = Math.toRadians((145.0 + index * 25.0))
-                val outer = size.minDimension / 2f - 30.dp.toPx()
-                val inner = outer - if (index % 5 == 0) 10.dp.toPx() else 5.dp.toPx()
-                val center = this.center
-                drawLine(
-                    color = track,
-                    start = Offset(
-                        center.x + cos(angle).toFloat() * inner,
-                        center.y + sin(angle).toFloat() * inner,
-                    ),
-                    end = Offset(
-                        center.x + cos(angle).toFloat() * outer,
-                        center.y + sin(angle).toFloat() * outer,
-                    ),
-                    strokeWidth = 2.dp.toPx(),
-                    cap = StrokeCap.Round,
-                )
-            }
-            val needleAngle = Math.toRadians(145.0 + 250.0 * animated)
-            val needleLength = 63.dp.toPx()
-            drawLine(
-                color = needle,
-                start = center,
-                end = Offset(
-                    center.x + cos(needleAngle).toFloat() * needleLength,
-                    center.y + sin(needleAngle).toFloat() * needleLength,
-                ),
-                strokeWidth = 5.dp.toPx(),
-                cap = StrokeCap.Round,
-            )
-            drawCircle(needle, 8.dp.toPx(), center)
-            drawCircle(SpeedLabAqua, 3.dp.toPx(), center)
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(top = 92.dp)) {
             Text(
                 formatSpeed(converted),
-                fontSize = 46.sp,
-                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Text(unit.symbol, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(unit.symbol, style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Scale ${formatSpeed(scale)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -416,49 +422,44 @@ private fun SpeedGauge(mbps: Double, unit: SpeedUnit, modifier: Modifier = Modif
 private fun MetricsGrid(state: SpeedLabUiState, unit: SpeedUnit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MetricCard("DOWNLOAD", formatSpeed(unit.fromMbps(state.downloadMbps)), unit.symbol, Modifier.weight(1f))
-            MetricCard("UPLOAD", formatSpeed(unit.fromMbps(state.uploadMbps)), unit.symbol, Modifier.weight(1f))
+            MetricCard("Download", formatSpeed(unit.fromMbps(state.downloadMbps)), unit.symbol, Modifier.weight(1f))
+            MetricCard("Upload", formatSpeed(unit.fromMbps(state.uploadMbps)), unit.symbol, Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MetricCard("PING", "%.1f".format(state.pingMillis), "ms", Modifier.weight(1f))
-            MetricCard("JITTER", "%.1f".format(state.jitterMillis), "ms", Modifier.weight(1f))
-            MetricCard("PEAK", formatSpeed(unit.fromMbps(state.peakMbps)), unit.symbol, Modifier.weight(1f))
+            MetricCard("Average", formatSpeed(unit.fromMbps(state.averageMbps)), unit.symbol, Modifier.weight(1f))
+            MetricCard("Peak", formatSpeed(unit.fromMbps(state.peakMbps)), unit.symbol, Modifier.weight(1f))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MetricCard("Ping", "%.1f".format(state.pingMillis), "ms", Modifier.weight(1f))
+            MetricCard("Jitter", "%.1f".format(state.jitterMillis), "ms", Modifier.weight(1f))
         }
     }
 }
 
 @Composable
 private fun MetricCard(title: String, value: String, unit: String, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Column(Modifier.padding(13.dp)) {
-            Text(title, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+    OutlinedCard(modifier = modifier) {
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 13.dp)) {
+            Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(5.dp))
-            Text(value, fontSize = 20.sp, fontWeight = FontWeight.Black, maxLines = 1)
-            Text(unit, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Text(unit, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @Composable
 private fun ThroughputGraph(samples: List<Double>, unit: String, modifier: Modifier = Modifier) {
-    val lineColor = SpeedLabAqua
+    val lineColor = MaterialTheme.colorScheme.primary
     val gridColor = MaterialTheme.colorScheme.outlineVariant
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(18.dp),
-    ) {
-        Column(Modifier.padding(14.dp)) {
+    OutlinedCard(modifier = modifier) {
+        Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("LIVE THROUGHPUT", fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                Text(unit, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                Text("Live throughput", style = MaterialTheme.typography.titleSmall)
+                Text(unit, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
             }
             Canvas(
-                modifier = Modifier.fillMaxSize().padding(top = 10.dp).semantics {
+                modifier = Modifier.fillMaxSize().padding(top = 12.dp).semantics {
                     contentDescription = "Live throughput graph with ${samples.size} samples"
                 },
             ) {
@@ -481,18 +482,18 @@ private fun ThroughputGraph(samples: List<Double>, unit: String, modifier: Modif
 
 @Composable
 private fun DiagnosticsCard(state: SpeedLabUiState, expanded: Boolean, onToggle: () -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(18.dp),
-    ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
             TextButton(onClick = onToggle, modifier = Modifier.fillMaxWidth()) {
                 Text(
                     if (expanded) "Hide diagnostics" else "Show diagnostics",
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Start,
                 )
-                Text(if (expanded) "⌃" else "⌄")
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                    contentDescription = null,
+                )
             }
             if (expanded) {
                 HorizontalDivider()
@@ -516,9 +517,15 @@ private fun DiagnosticsCard(state: SpeedLabUiState, expanded: Boolean, onToggle:
 
 @Composable
 private fun DiagnosticRow(label: String, value: String) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-        Text(value, fontWeight = FontWeight.Medium, textAlign = TextAlign.End, modifier = Modifier.weight(1.4f), maxLines = 1)
+        Text(
+            value,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1.4f),
+            maxLines = 1,
+        )
     }
 }
 

@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -52,17 +53,15 @@ fun SettingsScreen(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            Column {
-                Text("Settings", style = MaterialTheme.typography.headlineLarge)
-                Text(
-                    if (enabled) "Tune accuracy, traffic, servers, and appearance." else "Settings are locked during an active test.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                if (enabled) "Tune accuracy, traffic, servers, and appearance." else "Settings are locked during an active test.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyLarge,
+            )
         }
         item {
             SettingsCard("TEST MODE", "Choose exactly which transfer directions run.") {
@@ -181,15 +180,15 @@ fun SettingsScreen(
         }
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                shape = MaterialTheme.shapes.large,
             ) {
                 Column(Modifier.padding(18.dp)) {
-                    Text("Privacy by design", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+                    Text("Privacy by design", color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.SemiBold)
                     Text(
                         "No ads, analytics, account, location permission, or broad storage permission. " +
                             "History stays on this device. All built-in test traffic uses normal HTTPS certificate validation.",
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.78f),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 5.dp),
                     )
@@ -331,12 +330,12 @@ private fun SettingsCard(
     subtitle: String,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(20.dp),
+    ElevatedCard(
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
     ) {
         Column(Modifier.fillMaxWidth().padding(17.dp)) {
-            Text(title, color = MaterialTheme.colorScheme.secondary, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp)
+            Text(title.lowercase().replaceFirstChar(Char::uppercase), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 3.dp, bottom = 9.dp))
             content()
         }
