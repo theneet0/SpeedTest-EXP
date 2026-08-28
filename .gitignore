@@ -1,0 +1,11 @@
+.gradle/
+.idea/
+local.properties
+*.iml
+**/build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+SpeedLab-source.zip
