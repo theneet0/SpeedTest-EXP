@@ -1,8 +1,14 @@
 # SpeedLab
 
+[![Android Build](https://github.com/theneet0/SpeedTest-EXP/actions/workflows/android.yml/badge.svg)](https://github.com/theneet0/SpeedTest-EXP/actions/workflows/android.yml)
+
 SpeedLab is a native, privacy-focused internet speed test for Android. It performs real application-layer HTTPS transfers, supports genuinely independent download-only and upload-only modes, and keeps settings and history on the device.
 
 The project is optimized for Android 14 and newer while retaining a practical minSdk of 26. The default package is com.example.speedlab; the package, app name, built-in server catalog, and profile defaults are centralized and can be changed without redesigning the app.
+
+## Download
+
+The current installable beta APK, source archive, release notes, and SHA-256 checksums are available on the [SpeedLab v0.9.0 Beta release page](https://github.com/theneet0/SpeedTest-EXP/releases/tag/v0.9.0).
 
 ## Current feature set
 

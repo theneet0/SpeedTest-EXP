@@ -56,3 +56,32 @@ jobs:
             SpeedLab-source.zip
           if-no-files-found: error
           retention-days: 30
+
+  release:
+    name: Publish v0.9.0 prerelease
+    needs: build
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[release:v0.9.0]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout release notes
+        uses: actions/checkout@v4
+
+      - name: Download tested deliverables
+        uses: actions/download-artifact@v4
+        with:
+          name: SpeedLab-deliverables
+          path: release-assets
+
+      - name: Prepare versioned release assets
+        run: |
+          mv release-assets/SpeedLab-debug.apk release-assets/SpeedLab-v0.9.0-beta.apk
+          mv release-assets/SpeedLab-source.zip release-assets/SpeedLab-v0.9.0-source.zip
+          sha256sum release-assets/* > release-assets/SHA256SUMS.txt
+
+      - name: Create GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0.9.0 release-assets/SpeedLab-v0.9.0-beta.apk release-assets/SpeedLab-v0.9.0-source.zip release-assets/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "SpeedLab v0.9.0 Beta" --notes-file RELEASE_NOTES.md --prerelease
